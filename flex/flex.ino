@@ -18,14 +18,10 @@ const int waitTimeAfterStartup = 2000; // 2 seconds
 //data from computer to be read by arduino outputs
 const int NUM_OF_COMP_INPUTS = 2;
 int inputFromComputer[NUM_OF_COMP_INPUTS] = {100,100}; //Default inputs
-
+const int READING_DELAY = 3; //3 ms
 //for reading computer input and decoding it
 const char DELIMITER = ',';
 String inputString = ""; //String to hold input Data
-
-//Things for synchronization
-bool mutex = true; //A binary Semaphore
-uint8_t InterruptFlag;
 
 bool isInput(){
 	return Serial.available()>0;
@@ -49,6 +45,7 @@ void println(){
 			break; 			//break before the last ','
 		Serial.print(",");
 	}
+
 	Serial.print('\n');//endline char
 }
 
@@ -84,57 +81,23 @@ void decodeInput(String input){
 	*/
 	int startIndex = 0;
 	int delimiterIndex;
-	Serial.println(input);
 	for (int index=0; index < NUM_OF_COMP_INPUTS; index++){
 		delimiterIndex = input.indexOf(DELIMITER,startIndex);
 		//index where the first delimiter is found after startIndex
-
-		if (delimiterIndex > 0)//There is a delimiter found so print from start to just before
-			inputFromComputer[index] = input.substring(startIndex,delimiterIndex-1).toInt();
-		else
+		if (delimiterIndex == startIndex){
+			//This means there was either a , at the begining or ,,
+			startIndex++;//Move startIndex
+			continue;
+		}
+		if (delimiterIndex > 0){//There is a delimiter found so print from start to just before
+			inputFromComputer[index] = input.substring(startIndex,delimiterIndex).toInt();
+		}else{
 			inputFromComputer[index] = input.substring(startIndex).toInt();
-			//Otherwise we are at the end of input and we want to read from start to end.
+			break;
+		}//Otherwise we are at the end of input and we want to read from start to end.
 
 		startIndex = delimiterIndex + 1;//now start is just after the delimiter
 	}
-}
-
-void disableInterrupts(){
-	InterruptFlag = SREG;   // save interrupt flag
-	cli();   // disable interrupts
-}
-void enableInterrupts(){
-	SREG = InterruptFlag;
-}
-
-
-bool down(bool sem){
-	/*
-	* Uses busy waiting if the semaphore is in use
-	**************************************************
-	*  1. disable interrupts and check the value of sem
-	*  2. If false enable and yeild to other threads
-	*  3. Repeat 1-2 until sem == true, set it to false and leave with
-		Interrupts enabled.  Since the sem is now held, no other thread
-		can be past the down call.
-	*/
-	disableInterrupts();
-	bool waited = false;
-	while (!sem){
-		enableInterrupts();
-		waited = true;
-		Serial.println("I waited on another process");
-		delay(3);//yield();			// the thread yields itself so another program can run
-		disableInterrupts();
-	}
-	sem = false;//acquire the semaphore
-	enableInterrupts();
-	return waited;
-}
-
-void up(bool sem){
-	//This sets the semaphore as available, thus anyone waiting can continue
-	sem = true;
 }
 
 void sendOutput(){
@@ -146,16 +109,10 @@ void sendOutput(){
 
 
 void serialEvent(){
-		bool waited = down(mutex);
-		//acquire Mutex so the next section is only read by one thread at a time
-		if (waited){
-			Serial.println("I waited on another process");
-		}
 		if (isInput()){//Only read if there is input. else release the mutex
 			readInput();
 			println();
 		}
-		up(mutex);//Release the mutex so other threads can continue
 }
 
 void setup(){
