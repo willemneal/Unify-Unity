@@ -15,13 +15,13 @@ void setup(){
 
 void loop(){
 	int flexReading= analogRead(flexPin);
-	minRes =  min(flexReading, minRes);
-	maxRes =  max(flexReading, maxRes);
+	minRes =  min(flexReading, minRes); //Find new min
+	maxRes =  max(flexReading, maxRes); //Find new max
 	Serial.print(flexReading);
-        Serial.print(" Max: ");
-        Serial.print(maxRes);
-        Serial.print(" Min: ");
-        Serial.println(minRes);
+    Serial.print(" Max: ");
+    Serial.print(maxRes);
+    Serial.print(" Min: ");
+    Serial.println(minRes);
 
 
 	delay(2);//Pause for analog to digital to settle
