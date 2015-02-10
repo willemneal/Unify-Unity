@@ -40,7 +40,7 @@ void println(){
 	*/
 	Serial.print("flexPin:");
 	for (int pin = 0; pin< NUMBER_OF_INPUT_PINS; pin++){
-		Serial.print(readPin(pin));
+		Serial.print(readPin(felxPins[pin]));
 		if (pin + 1 == NUMBER_OF_INPUT_PINS) //its the last one
 			break; 			//break before the last ','
 		Serial.print(",");
@@ -52,7 +52,7 @@ void println(){
 void flushOutput(){
 	//read until you can't
 	while(isInput()){
-		char nextChar = (char) Serial.read();
+		Serial.read();
 	}
 }
 
